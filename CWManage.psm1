@@ -3443,6 +3443,11 @@ function Get-CWMTicket {
         .EXAMPLE
         Get-CWMTicket -condition 'summary="test"'
         Returns the first 25 tickets with the summary of test
+        
+        .EXAMPLE
+        Get-CWMTicket -condition 'id>56060' -pageSize 1000
+        Returns the first 1000 tickets with id greater than 56060
+        
 
         .NOTES
         Author: Chris Taylor
@@ -3688,7 +3693,7 @@ function Update-CWMTicket {
 
         .EXAMPLE
         $UpdateParam = @{
-            ID = 1
+            ticketID = 1
             Operation = 'replace'
             Path = 'name'
             Value = $NewName
