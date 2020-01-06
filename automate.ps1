@@ -1,5 +1,3 @@
-Import-Module .\CWManage.psm1
-
 ###########################################
 ##################Edit#####################
 ###########################################
@@ -15,6 +13,7 @@ $startTicketID = 100 #Start Processing from this ticket ID
 ###########################################
 ###########################################
 
+Import-Module .\CWManage.psm1
 
 $global:totalCompleted = 0
 
@@ -47,25 +46,13 @@ function Start-CWMConnection
 	Write-Output "Authenticated Successfully"
 } 
 
+function Complete-Ticket(){
 
-function Clean-UselessTickets
-{
+	[CmdletBinding()]
+    param(
+        [PSCustomObject]$target
+    )
 	
-	Write-Output "Loading Recent Tickets"
-	
-	#get recent 1000 tickets
-	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
-	
-	Write-Output "Processing Tickets"
-	
-	########################################################################
-	#clear tickets "Ticket #*/has been submitted to Cloud Connect Helpdesk"
-	########################################################################
-	
-	#select relevant tickets
-	$target =$tickets |Where-Object {$_.summary -like "Ticket #*/has been submitted to Cloud Connect Helpdesk"}
-	
-
 	#create completed status object
 	$completed = @{id=""; name="Completed"; _info=""}
 
@@ -87,8 +74,22 @@ function Clean-UselessTickets
 			$global:totalCompleted = $global:totalCompleted + 1
 		}
 	}
+}
 
-	##########################################################################
+function Clean-UselessTickets
+{
+	Write-Output "Loading Recent Tickets"
+	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	
+	Write-Output "Processing Tickets"
+	
+	#clear tickets "Ticket #*/has been submitted to Cloud Connect Helpdesk"
+	$target =$tickets |Where-Object {$_.summary -like "Ticket #*/has been submitted to Cloud Connect Helpdesk"}
+	Complete-Ticket -target $target
+	
+	#clear tickets "The driver detected a controller error on \Device\Harddisk1\DR#"
+	$target =$tickets |Where-Object {$_.summary -like "*Drive Errors and Raid Failures*"}
+	Complete-Ticket -target $target
 	
 } 
 
