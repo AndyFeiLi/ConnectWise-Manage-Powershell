@@ -16,6 +16,7 @@ $startTicketID = 100 #Start Processing from this ticket ID
 ###########################################
 
 
+$global:totalCompleted = 0
 
 
 function Start-CWMConnection
@@ -49,10 +50,13 @@ function Start-CWMConnection
 
 function Clean-UselessTickets
 {
-	Write-Output "Clearing Useless Tickets"
+	
+	Write-Output "Loading Recent Tickets"
 	
 	#get recent 1000 tickets
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	
+	Write-Output "Processing Tickets"
 	
 	########################################################################
 	#clear tickets "Ticket #*/has been submitted to Cloud Connect Helpdesk"
@@ -61,14 +65,27 @@ function Clean-UselessTickets
 	#select relevant tickets
 	$target =$tickets |Where-Object {$_.summary -like "Ticket #*/has been submitted to Cloud Connect Helpdesk"}
 	
-	Write-Output $target.count
 
 	#create completed status object
 	$completed = @{id=""; name="Completed"; _info=""}
 
 	#for relevant ticket update status to completed
 	foreach($ticket in $target){
-		Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
+	
+		#if ticket is New
+		if(!$ticket.status.name.CompareTo("New")){
+		
+			$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
+			
+			$output = [pscustomobject]@{
+					Result = "Completed"
+					TicketID = $ticket.id 
+					Ticket = $ticket.summary
+				}
+			
+			Write-Output $output
+			$global:totalCompleted = $global:totalCompleted + 1
+		}
 	}
 
 	##########################################################################
@@ -86,7 +103,10 @@ function Begin-Automation
 	Clean-UselessTickets
 	
 	#end connectwise manage session
-	Disconnect-CWM
+	#Disconnect-CWM
 	Write-Output "Session Closed"
+	
+	Write-Output ($totalCompleted.tostring() + " ticket(s) completed")
+	
 	
 } 
